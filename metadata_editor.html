@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EPA Unified Metadata Studio (Posit Connect API Enabled)</title>
+  
+  <!-- USWDS Init JS & CSS from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@uswds/uswds@3.8.0/dist/js/uswds-init.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@uswds/uswds@3.8.0/dist/css/uswds.min.css">
+  
+  <!-- Vue 3 & JS-YAML CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  
+  <style>
+    .badge-mandatory { background-color: #d9381e; color: #ffffff; }
+    .badge-optional { background-color: #005ea2; color: #ffffff; }
+    .section-divider { border-top: 2px dashed #a9aeb1; margin-top: 2rem; padding-top: 1.5rem; }
+    .api-settings-panel { background-color: #f0f4f8; border-left: 4px solid #005ea2; padding: 1rem; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="usa-overlay-wrapper">
+      
+      <!-- USWDS Extended Header -->
+      <header class="usa-header usa-header--extended" role="banner">
+        <div class="usa-navbar">
+          <div class="usa-logo" id="extended-logo">
+            <em class="usa-logo__text">
+              <a href="#" title="Home">EPA Unified Metadata Studio</a>
+            </em>
+          </div>
+        </div>
+        <nav class="usa-nav" role="navigation">
+          <div class="usa-nav__inner">
+            <ul class="usa-nav__primary usa-accordion">
+              <li class="usa-nav__primary-item">
+                <button class="usa-nav__link" :class="{ 'usa-current': activeTab === 'general' }" @click="activeTab = 'general'">
+                  Cross-Cutting Core
+                </button>
+              </li>
+              <li class="usa-nav__primary-item">
+                <button class="usa-nav__link" :class="{ 'usa-current': activeTab === 'dcat' }" @click="activeTab = 'dcat'">
+                  DCAT-US v3.0 Ext
+                </button>
+              </li>
+              <li class="usa-nav__primary-item">
+                <button class="usa-nav__link" :class="{ 'usa-current': activeTab === 'stac' }" @click="activeTab = 'stac'">
+                  STAC Geospatial Ext
+                </button>
+              </li>
+              <li class="usa-nav__primary-item">
+                <button class="usa-nav__link" :class="{ 'usa-current': activeTab === 'aws' }" @click="activeTab = 'aws'">
+                  AWS RODA Ext
+                </button>
+              </li>
+              <li class="usa-nav__primary-item">
+                <button class="usa-nav__link" :class="{ 'usa-current': activeTab === 'glue' }" @click="activeTab = 'glue'">
+                  AWS Glue Catalog Ext
+                </button>
+              </li>
+              <li class="usa-nav__primary-item">
+                <button class="usa-nav__link" :class="{ 'usa-current': activeTab === 'alation' }" @click="activeTab = 'alation'">
+                  Alation Governance Ext
+                </button>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </header>
+
+      <main class="usa-section padding-y-3">
+        <div class="grid-container">
+          
+          <!-- API Config Bar -->
+          <div class="api-settings-panel border-base-light margin-bottom-3">
+            <div class="grid-row grid-gap flex-align-center">
+              <div class="grid-col-12 tablet:grid-col-8">
+                <label class="usa-label margin-top-0" for="api-base-url"><strong>Posit Connect API Base URL</strong></label>
+                <input v-model="apiBaseUrl" class="usa-input" id="api-base-url" type="text" />
+              </div>
+              <div class="grid-col-12 tablet:grid-col-4">
+                <label class="usa-label margin-top-0" for="api-key"><strong>Connect API Key (Optional)</strong></label>
+                <input v-model="apiKey" class="usa-input" id="api-key" type="password" placeholder="Key xxx..." />
+              </div>
+            </div>
+          </div>
+
+          <!-- USWDS Action Toolbar -->
+          <div class="grid-row grid-gap margin-bottom-3 display-flex flex-align-center">
+            <div class="grid-col-auto">
+              <label class="usa-button usa-button--outline margin-bottom-0" for="file-upload">
+                Convert & Ingest File (API)
+              </label>
+              <input id="file-upload" type="file" class="usa-sr-only" @change="convertAndLoadFile" accept=".json,.xml,.yaml,.yml" />
+            </div>
+            <div class="grid-col-auto">
+              <div class="display-flex flex-align-center">
+                <select v-model="exportFormat" class="usa-select margin-y-0 margin-right-1">
+                  <option value="all">All Formats (.zip / JSON)</option>
+                  <option value="dcat30">DCAT-US v3.0 JSON</option>
+                  <option value="dcat11">DCAT-US v1.1 JSON</option>
+                  <option value="fgdc">FGDC CSDGM XML</option>
+                  <option value="stac">STAC v1.0.0 GeoJSON</option>
+                  <option value="aws">AWS RODA YAML</option>
+                  <option value="glue">AWS Glue TableInput</option>
+                  <option value="alation">Alation Payload</option>
+                </select>
+                <button class="usa-button usa-button--secondary margin-y-0" @click="exportTargetFormatApi">
+                  Export Target Format (API)
+                </button>
+              </div>
+            </div>
+            <div class="grid-col-auto">
+              <button class="usa-button margin-y-0" @click="syncCatalogsApi">
+                Sync to Catalogs (API)
+              </button>
+            </div>
+            <div class="grid-col-auto margin-left-auto">
+              <span class="usa-tag" :class="record.accessRights === 'public' ? 'usa-tag--success' : 'usa-tag--warn'">
+                {{ (record.accessRights || 'PUBLIC').toUpperCase() }}
+              </span>
+            </div>
+          </div>
+
+          <!-- USWDS Alert Banner -->
+          <div v-if="statusMessage" class="usa-alert margin-bottom-3" :class="statusType === 'error' ? 'usa-alert--error' : 'usa-alert--info'" role="status">
+            <div class="usa-alert__body">
+              <h3 class="usa-alert__heading">{{ statusType === 'error' ? 'API Error' : 'System Message' }}</h3>
+              <p class="usa-alert__text">{{ statusMessage }}</p>
+            </div>
+          </div>
+
+          <!-- TAB 1: CROSS-CUTTING SCHEMA ELEMENTS -->
+          <div v-if="activeTab === 'general'">
+            <h2 class="font-heading-xl border-bottom-05 border-base-light padding-bottom-1">
+              Cross-Cutting Core Metadata Elements
+            </h2>
+            <p class="usa-intro">General metadata fields applicable across all enterprise, open-data, and cloud catalog schemas.</p>
+
+            <form class="usa-form usa-form--large" @submit.prevent>
+              <div class="margin-bottom-4">
+                <h3 class="font-heading-l text-primary display-flex flex-align-center">
+                  Mandatory Elements
+                  <span class="usa-tag badge-mandatory margin-left-2">MANDATORY</span>
+                </h3>
+
+                <div class="usa-form-group">
+                  <label class="usa-label" for="title">Dataset Title <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                  <input v-model="record.title" class="usa-input" id="title" type="text" required />
+                </div>
+
+                <div class="usa-form-group">
+                  <label class="usa-label" for="description">Abstract / Description <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                  <textarea v-model="record.description" class="usa-textarea" id="description" rows="4" required></textarea>
+                </div>
+
+                <div class="grid-row grid-gap">
+                  <div class="grid-col-6">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="identifier">Persistent Identifier <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                      <input v-model="record.identifier" class="usa-input" id="identifier" type="text" required />
+                    </div>
+                  </div>
+                  <div class="grid-col-6">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="modified">Last Modified Date <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                      <input v-model="record.modified" class="usa-input" id="modified" type="text" required />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid-row grid-gap">
+                  <div class="grid-col-6">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="publisher-name">Publishing Organization <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                      <input v-model="record.publisher.name" class="usa-input" id="publisher-name" type="text" required />
+                    </div>
+                  </div>
+                  <div class="grid-col-6">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="contact-email">Contact Point Email <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                      <input v-model="record.contactPoint.hasEmail" class="usa-input" id="contact-email" type="email" required />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid-row grid-gap">
+                  <div class="grid-col-4">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="access-rights">Access Rights <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                      <select v-model="record.accessRights" class="usa-select" id="access-rights" required>
+                        <option value="public">Public</option>
+                        <option value="restricted public">Restricted Public</option>
+                        <option value="non-public">Non-Public</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="grid-col-4">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="bureau-code">Bureau Code <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                      <input v-model="record.bureauCodeStr" class="usa-input" id="bureau-code" type="text" required />
+                    </div>
+                  </div>
+                  <div class="grid-col-4">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="program-code">Program Code <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                      <input v-model="record.programCodeStr" class="usa-input" id="program-code" type="text" required />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="usa-form-group">
+                  <label class="usa-label" for="keywords">Keywords / Tags (Comma Separated) <abbr title="required" class="usa-hint usa-hint--required">*</abbr></label>
+                  <input v-model="record.keywordsStr" class="usa-input" id="keywords" type="text" required />
+                </div>
+              </div>
+
+              <!-- OPTIONAL SECTION -->
+              <div class="section-divider margin-bottom-4">
+                <h3 class="font-heading-l text-secondary display-flex flex-align-center">
+                  Optional Elements
+                  <span class="usa-tag badge-optional margin-left-2">OPTIONAL</span>
+                </h3>
+
+                <div class="grid-row grid-gap">
+                  <div class="grid-col-6">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="issued">Issued Date</label>
+                      <input v-model="record.issued" class="usa-input" id="issued" type="text" />
+                    </div>
+                  </div>
+                  <div class="grid-col-6">
+                    <div class="usa-form-group">
+                      <label class="usa-label" for="landing-page">Landing Page URL</label>
+                      <input v-model="record.landingPage" class="usa-input" id="landing-page" type="text" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- TAB 5: AWS GLUE CATALOG EXTENSIONS -->
+          <div v-if="activeTab === 'glue'">
+            <h2 class="font-heading-xl border-bottom-05 border-base-light padding-bottom-1">AWS Glue Data Catalog Extensions</h2>
+            <form class="usa-form usa-form--large" @submit.prevent>
+              <div class="margin-bottom-4">
+                <h3 class="font-heading-l text-primary display-flex flex-align-center">Mandatory Glue Settings <span class="usa-tag badge-mandatory margin-left-2">MANDATORY</span></h3>
+                <div class="grid-row grid-gap">
+                  <div class="grid-col-6">
+                    <label class="usa-label" for="glue-db">Database Name *</label>
+                    <input v-model="record.aws_glue_catalog.DatabaseName" class="usa-input" id="glue-db" required />
+                  </div>
+                  <div class="grid-col-6">
+                    <label class="usa-label" for="glue-table">Table Name *</label>
+                    <input v-model="record.aws_glue_catalog.TableName" class="usa-input" id="glue-table" required />
+                  </div>
+                </div>
+
+                <h4 class="font-heading-m margin-top-3">Column Dictionary</h4>
+                <table class="usa-table usa-table--borderless width-full">
+                  <thead>
+                    <tr><th>Column Name *</th><th>Data Type *</th><th>Comment</th><th>Action</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(col, index) in record.aws_glue_catalog.StorageDescriptor.Columns" :key="index">
+                      <td><input v-model="col.Name" class="usa-input margin-y-0" required /></td>
+                      <td><input v-model="col.Type" class="usa-input margin-y-0" required /></td>
+                      <td><input v-model="col.Comment" class="usa-input margin-y-0" /></td>
+                      <td><button type="button" class="usa-button usa-button--unstyled text-error" @click="removeColumn(index)">Remove</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button type="button" class="usa-button usa-button--outline margin-top-1" @click="addColumn">+ Add Column</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- TAB 6: ALATION GOVERNANCE EXTENSIONS -->
+          <div v-if="activeTab === 'alation'">
+            <h2 class="font-heading-xl border-bottom-05 border-base-light padding-bottom-1">Alation Enterprise Governance Extensions</h2>
+            <form class="usa-form usa-form--large" @submit.prevent>
+              <div class="margin-bottom-4">
+                <h3 class="font-heading-l text-primary display-flex flex-align-center">Mandatory Alation Identity <span class="usa-tag badge-mandatory margin-left-2">MANDATORY</span></h3>
+                <div class="usa-form-group">
+                  <label class="usa-label" for="alation-ds">Alation Data Source ID (ds_id) *</label>
+                  <input v-model.number="record.alation_governance.ds_id" class="usa-input" id="alation-ds" type="number" required />
+                </div>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- USWDS Main JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@uswds/uswds@3.8.0/dist/js/uswds.min.js"></script>
+
+  <!-- Vue 3 Application Logic -->
+  <script>
+    const { createApp, ref, reactive } = Vue;
+
+    createApp({
+      setup() {
+        const activeTab = ref('general');
+        const exportFormat = ref('all');
+        const apiBaseUrl = ref(window.location.origin + window.location.pathname.replace(/\/$/, ''));
+        const apiKey = ref('');
+        const statusMessage = ref('Connected to Posit Connect API Base URL.');
+        const statusType = ref('info');
+
+        const record = reactive({
+          title: "EPA Envirofacts - Facility Registry Service (FRS) National Asset",
+          description: "Geospatial database and REST API providing facility location and compliance data.",
+          identifier: "https://doi.org/10.5066/F7EPA-FRS-ENVIROFACTS-2026",
+          modified: "2026-10-01",
+          issued: "2015-05-15",
+          accessRights: "public",
+          keywordsStr: "envirofacts, facility-registry-service, frs, geospatial, rest-api",
+          bureauCodeStr: "020:00",
+          programCodeStr: "020:000",
+          publisher: { name: "U.S. Environmental Protection Agency" },
+          contactPoint: { fn: "Envirofacts Data Custodian", hasEmail: "envirofacts@epa.gov" },
+          stac_metadata: { id: "epa-envirofacts-frs-2026-v1", collection: "epa-envirofacts-national-assets" },
+          aws_roda: { ManagedBy: "U.S. EPA OMS", Resources: [] },
+          aws_glue_catalog: { DatabaseName: "epa_envirofacts", TableName: "frs_facilities", StorageDescriptor: { Columns: [] } },
+          alation_governance: { ds_id: 42, trust_flags: { status: "ENDORSED" } }
+        });
+
+        function getAuthHeaders() {
+          const headers = {};
+          if (apiKey.value && apiKey.value.trim() !== '') {
+            headers["Authorization"] = "Key " + apiKey.value.trim();
+          }
+          return headers;
+        }
+
+        function addColumn() {
+          record.aws_glue_catalog.StorageDescriptor.Columns.push({ Name: "", Type: "string", Comment: "" });
+        }
+
+        function removeColumn(index) {
+          record.aws_glue_catalog.StorageDescriptor.Columns.splice(index, 1);
+        }
+
+        async function convertAndLoadFile(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          statusMessage.value = `Uploading '${file.name}' to Posit Connect API for conversion...`;
+          statusType.value = 'info';
+
+          const formData = new FormData();
+          formData.append("file", file);
+
+          try {
+            const cleanBase = apiBaseUrl.value.replace(/\/\$/, '');
+            const res = await fetch(`${cleanBase}/convert/from-file`, {
+              method: "POST",
+              headers: getAuthHeaders(),
+              body: formData
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+
+            const data = await res.json();
+            Object.assign(record, data.unified_record);
+
+            if (Array.isArray(record.keyword)) record.keywordsStr = record.keyword.join(', ');
+            if (Array.isArray(record.bureauCode)) record.bureauCodeStr = record.bureauCode.join(', ');
+            if (Array.isArray(record.programCode)) record.programCodeStr = record.programCode.join(', ');
+
+            statusMessage.value = `Successfully converted '${file.name}' (${data.format.toUpperCase()}) via Posit Connect API.`;
+          } catch (err) {
+            statusMessage.value = `API Conversion Error: ${err.message}`;
+            statusType.value = 'error';
+          }
+        }
+
+        async function exportTargetFormatApi() {
+          statusMessage.value = `Generating '${exportFormat.value}' export via Posit Connect API...`;
+          statusType.value = 'info';
+
+          const exportPayload = JSON.parse(JSON.stringify(record));
+          exportPayload.keyword = record.keywordsStr ? record.keywordsStr.split(',').map(s => s.trim()) : [];
+          exportPayload.bureauCode = record.bureauCodeStr ? record.bureauCodeStr.split(',').map(s => s.trim()) : [];
+          exportPayload.programCode = record.programCodeStr ? record.programCodeStr.split(',').map(s => s.trim()) : [];
+
+          try {
+            const cleanBase = apiBaseUrl.value.replace(/\/\$/, '');
+            const res = await fetch(`${cleanBase}/export/to-target?format=${exportFormat.value}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+              body: JSON.stringify(exportPayload)
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+
+            const data = await res.json();
+            const blob = new Blob([JSON.stringify(data.exported_content || data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `exported_${exportFormat.value}_metadata.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            statusMessage.value = `Exported '${exportFormat.value}' metadata via Posit Connect API.`;
+          } catch (err) {
+            statusMessage.value = `API Export Error: ${err.message}`;
+            statusType.value = 'error';
+          }
+        }
+
+        async function syncCatalogsApi() {
+          statusMessage.value = `Triggering catalog sync via Posit Connect API...`;
+          statusType.value = 'info';
+
+          const syncPayload = JSON.parse(JSON.stringify(record));
+          syncPayload.keyword = record.keywordsStr ? record.keywordsStr.split(',').map(s => s.trim()) : [];
+
+          try {
+            const cleanBase = apiBaseUrl.value.replace(/\/\$/, '');
+            const res = await fetch(`${cleanBase}/sync/catalogs`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+              body: JSON.stringify({ record: syncPayload, execute: false })
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+
+            const result = await res.json();
+            const glueAct = result.aws_glue_status.action || 'OK';
+            const alationAct = result.alation_status.action || 'OK';
+
+            statusMessage.value = `Catalog Sync Successful! AWS Glue Action: ${glueAct} | Alation Action: ${alationAct}`;
+          } catch (err) {
+            statusMessage.value = `API Sync Error: ${err.message}`;
+            statusType.value = 'error';
+          }
+        }
+
+        return {
+          activeTab,
+          exportFormat,
+          apiBaseUrl,
+          apiKey,
+          statusMessage,
+          statusType,
+          record,
+          addColumn,
+          removeColumn,
+          convertAndLoadFile,
+          exportTargetFormatApi,
+          syncCatalogsApi
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

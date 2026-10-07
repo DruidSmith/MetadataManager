@@ -1,0 +1,748 @@
+{
+  "": "https://resources.data.gov/schemas/unified-dcat-stac-aws-schema.json",
+  "title": "Unified Metadata Schema (DCAT-US v3.0 + STAC v1.0.0 + AWS RODA + Geospatial Governance)",
+  "description": "An overarching metadata schema integrating federal DCAT-US v3.0, W3C DCAT 3, SpatioTemporal Asset Catalog (STAC) v1.0.0, AWS Registry of Open Data (RODA), ISO 19115 / FGDC CSDGM, and EPA quality assurance/ML standards.",
+  "type": "object",
+  "required": [
+    "@type",
+    "identifier",
+    "title",
+    "description",
+    "publisher",
+    "contactPoint",
+    "modified",
+    "keyword",
+    "accessRights",
+    "bureauCode",
+    "programCode"
+  ],
+  "properties": {
+    "@context": {
+      "type": "string",
+      "default": "https://project-open-data.cio.gov/v1.1/schema/catalog.jsonld",
+      "description": "JSON-LD Context URI defining vocabularies (DCAT, FOAF, DCTERMS, STAC, RODA)."
+    },
+    "@type": {
+      "type": "string",
+      "enum": [
+        "dcat:Dataset",
+        "stac:Collection",
+        "stac:Item"
+      ],
+      "default": "dcat:Dataset"
+    },
+    "identifier": {
+      "type": "string",
+      "description": "Unique persistent identifier (DOI, URI, or agency unique identifier)."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 250,
+      "description": "Human-readable name of the dataset. Equivalent to DCAT title and AWS RODA Name."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Human-readable abstract outlining dataset contents, scope, and purpose."
+    },
+    "publisher": {
+      "type": "object",
+      "required": [
+        "@type",
+        "name"
+      ],
+      "properties": {
+        "@type": {
+          "type": "string",
+          "default": "org:Organization"
+        },
+        "name": {
+          "type": "string",
+          "description": "Publishing agency or institution name (e.g. U.S. Environmental Protection Agency)."
+        },
+        "subOrganizationOf": {
+          "type": "string",
+          "description": "Parent organization or department."
+        }
+      }
+    },
+    "contactPoint": {
+      "type": "object",
+      "required": [
+        "fn",
+        "hasEmail"
+      ],
+      "properties": {
+        "fn": {
+          "type": "string",
+          "description": "Contact person or position name."
+        },
+        "hasEmail": {
+          "type": "string",
+          "pattern": "^mailto:.+@.+\\..+$",
+          "description": "mailto: URI for contact."
+        }
+      }
+    },
+    "modified": {
+      "type": "string",
+      "description": "ISO 8601 formatted modification date (YYYY-MM-DD or YYYY-MM-THH:MM:SSZ)."
+    },
+    "issued": {
+      "type": "string",
+      "description": "ISO 8601 formal release/issuance date."
+    },
+    "keyword": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "Tags describing the dataset subject matter. Equivalent to AWS RODA Tags."
+    },
+    "theme": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Primary thematic categories (e.g., 'environment', 'geospatial')."
+    },
+    "bureauCode": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "OMB Circular A-11 bureau code (e.g., '020:00' for EPA)."
+    },
+    "programCode": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Federal Program Inventory program code (e.g., '020:000')."
+    },
+    "accessRights": {
+      "type": "string",
+      "enum": [
+        "public",
+        "restricted public",
+        "non-public"
+      ],
+      "description": "DCAT-US v3.0 public access rights designation."
+    },
+    "license": {
+      "type": "string",
+      "description": "URL or statement defining dataset licensing terms."
+    },
+    "landingPage": {
+      "type": "string",
+      "description": "URL to human-friendly hub or landing page."
+    },
+    "accrualPeriodicity": {
+      "type": "string",
+      "description": "ISO 8601 repeating interval (e.g., R/P1D, R/P1M) or 'irregular'. Equivalent to AWS UpdateFrequency."
+    },
+    "spatial": {
+      "type": "object",
+      "description": "Spatial coverage represented via GeoJSON geometry or bounding coordinates string.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "Polygon",
+            "Point",
+            "BoundingBox"
+          ]
+        },
+        "bbox": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 4,
+          "maxItems": 6,
+          "description": "[west, south, east, north] bounding coordinates."
+        },
+        "coordinates": {
+          "type": "array",
+          "description": "GeoJSON coordinates nested structure."
+        },
+        "spatial_reference": {
+          "type": "string",
+          "description": "Coordinate Reference System / EPSG Code (e.g. EPSG:4269 for NAD83)."
+        }
+      }
+    },
+    "temporal": {
+      "type": "string",
+      "description": "ISO 8601 temporal interval string (YYYY-MM-DD/YYYY-MM-DD)."
+    },
+    "stac_metadata": {
+      "type": "object",
+      "description": "SpatioTemporal Asset Catalog (STAC v1.0.0) core fields and extension attributes.",
+      "properties": {
+        "stac_version": {
+          "type": "string",
+          "default": "1.0.0"
+        },
+        "stac_extensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string",
+          "description": "STAC Item or Collection unique ID."
+        },
+        "collection": {
+          "type": "string",
+          "description": "STAC parent collection ID."
+        },
+        "properties": {
+          "type": "object",
+          "description": "STAC item properties (datetime, eo:cloud_cover, proj:epsg, etc.)."
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "rel",
+              "href"
+            ],
+            "properties": {
+              "rel": {
+                "type": "string"
+              },
+              "href": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "assets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "href"
+            ],
+            "properties": {
+              "href": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "description": "MIME type."
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "aws_roda": {
+      "type": "object",
+      "description": "AWS Registry of Open Data (RODA) cloud publishing attributes.",
+      "properties": {
+        "ManagedBy": {
+          "type": "string",
+          "description": "Managing laboratory or institution."
+        },
+        "UpdateFrequency": {
+          "type": "string"
+        },
+        "Resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "ARN",
+              "Region",
+              "Type",
+              "Description"
+            ],
+            "properties": {
+              "Description": {
+                "type": "string"
+              },
+              "ARN": {
+                "type": "string"
+              },
+              "Region": {
+                "type": "string"
+              },
+              "Type": {
+                "type": "string",
+                "enum": [
+                  "S3 Bucket",
+                  "SNS Topic",
+                  "DB Snapshot",
+                  "CloudFront Distribution"
+                ]
+              },
+              "RequesterPays": {
+                "type": "boolean"
+              },
+              "ControlledAccess": {
+                "type": "string"
+              },
+              "Explore": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "DataAtWork": {
+          "type": "object",
+          "properties": {
+            "Tutorials": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "Title",
+                  "URL"
+                ],
+                "properties": {
+                  "Title": {
+                    "type": "string"
+                  },
+                  "URL": {
+                    "type": "string"
+                  },
+                  "NotebookURL": {
+                    "type": "string"
+                  },
+                  "AuthorName": {
+                    "type": "string"
+                  },
+                  "AuthorURL": {
+                    "type": "string"
+                  },
+                  "Services": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "Tools & Applications": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "Title",
+                  "URL"
+                ],
+                "properties": {
+                  "Title": {
+                    "type": "string"
+                  },
+                  "URL": {
+                    "type": "string"
+                  },
+                  "AuthorName": {
+                    "type": "string"
+                  },
+                  "AuthorURL": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "Publications": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "Title",
+                  "URL"
+                ],
+                "properties": {
+                  "Title": {
+                    "type": "string"
+                  },
+                  "URL": {
+                    "type": "string"
+                  },
+                  "AuthorName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ADXCategories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dataServices": {
+      "type": "array",
+      "description": "DCAT-US v3.0 DataService definitions for programmatic APIs (e.g. EPA Envirofacts REST service).",
+      "items": {
+        "type": "object",
+        "required": [
+          "@type",
+          "title",
+          "endpointURL"
+        ],
+        "properties": {
+          "@type": {
+            "type": "string",
+            "default": "dcat:DataService"
+          },
+          "title": {
+            "type": "string"
+          },
+          "endpointURL": {
+            "type": "string"
+          },
+          "endpointDescription": {
+            "type": "string"
+          },
+          "conformsTo": {
+            "type": "string",
+            "description": "API Specification (e.g. OpenAPI, REST, CSW)."
+          },
+          "servesDataset": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "distribution": {
+      "type": "array",
+      "description": "DCAT Distributions / Downloadable File Artifacts.",
+      "items": {
+        "type": "object",
+        "required": [
+          "@type",
+          "downloadURL",
+          "mediaType"
+        ],
+        "properties": {
+          "@type": {
+            "type": "string",
+            "default": "dcat:Distribution"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "downloadURL": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "number"
+          },
+          "describedBy": {
+            "type": "string",
+            "description": "Data dictionary URL."
+          }
+        }
+      }
+    },
+    "governance_and_quality": {
+      "type": "object",
+      "description": "Federal governance, scientific quality assurance, AI/ML suitability, and security metadata.",
+      "properties": {
+        "quality_assurance_plan_qapp": {
+          "type": "string",
+          "description": "URL to EPA approved Quality Assurance Project Plan (QAPP)."
+        },
+        "peer_review_url": {
+          "type": "string",
+          "description": "URL to formal peer review documentation."
+        },
+        "influential_data_flag": {
+          "type": "boolean",
+          "description": "OMB M-19-15 Influential Data identification flag."
+        },
+        "high_value_asset": {
+          "type": "boolean",
+          "description": "FISMA High Value Asset (HVA) flag."
+        },
+        "ml_training_data_suitable": {
+          "type": "boolean",
+          "description": "usg:ml-training-data flag for AI/ML suitability."
+        },
+        "ml_recommended_tasks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Recommended ML tasks (e.g., classification, spatial clustering)."
+        },
+        "primaryITInvestmentUII": {
+          "type": "string",
+          "description": "Unique IT Investment Identifier."
+        },
+        "cuiProtection": {
+          "type": "string",
+          "description": "Controlled Unclassified Information handling rules."
+        }
+      }
+    },
+    "aws_glue_catalog": {
+      "type": "object",
+      "description": "AWS Glue Data Catalog table definition and storage descriptor properties.",
+      "properties": {
+        "CatalogId": {
+          "type": "string",
+          "description": "AWS Account ID or Catalog ID."
+        },
+        "DatabaseName": {
+          "type": "string",
+          "description": "Glue database name (e.g. 'envirofacts')."
+        },
+        "TableName": {
+          "type": "string",
+          "description": "Glue table name (e.g. 'frs_facilities')."
+        },
+        "TableType": {
+          "type": "string",
+          "default": "EXTERNAL_TABLE",
+          "enum": [
+            "EXTERNAL_TABLE",
+            "MANAGED_TABLE",
+            "VIRTUAL_VIEW"
+          ]
+        },
+        "StorageDescriptor": {
+          "type": "object",
+          "required": [
+            "Location",
+            "Columns"
+          ],
+          "properties": {
+            "Location": {
+              "type": "string",
+              "description": "S3 URI or data location."
+            },
+            "InputFormat": {
+              "type": "string"
+            },
+            "OutputFormat": {
+              "type": "string"
+            },
+            "Compressed": {
+              "type": "boolean",
+              "default": false
+            },
+            "SerdeInfo": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "type": "string"
+                },
+                "SerializationLibrary": {
+                  "type": "string"
+                },
+                "Parameters": {
+                  "type": "object"
+                }
+              }
+            },
+            "Columns": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "Name",
+                  "Type"
+                ],
+                "properties": {
+                  "Name": {
+                    "type": "string"
+                  },
+                  "Type": {
+                    "type": "string"
+                  },
+                  "Comment": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "PartitionKeys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "Name",
+              "Type"
+            ],
+            "properties": {
+              "Name": {
+                "type": "string"
+              },
+              "Type": {
+                "type": "string"
+              },
+              "Comment": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "Parameters": {
+          "type": "object",
+          "description": "Table parameters key-value map (e.g. classification: parquet)."
+        }
+      }
+    },
+    "alation_governance": {
+      "type": "object",
+      "description": "Alation enterprise data governance metadata (via Allie SDK API objects).",
+      "properties": {
+        "ds_id": {
+          "type": "integer",
+          "description": "Alation Data Source ID."
+        },
+        "table_id": {
+          "type": "integer",
+          "description": "Alation Catalog Table ID."
+        },
+        "key": {
+          "type": "string",
+          "description": "Qualified asset key in Alation (e.g. '1.envirofacts.frs_facilities')."
+        },
+        "domain_id": {
+          "type": "integer",
+          "description": "Alation Domain ID."
+        },
+        "custom_fields": {
+          "type": "array",
+          "description": "Alation custom field values.",
+          "items": {
+            "type": "object",
+            "required": [
+              "field_id",
+              "value"
+            ],
+            "properties": {
+              "field_id": {
+                "type": "integer"
+              },
+              "field_name": {
+                "type": "string"
+              },
+              "value": {
+                "type": [
+                  "string",
+                  "array",
+                  "boolean",
+                  "number",
+                  "object"
+                ]
+              }
+            }
+          }
+        },
+        "trust_flags": {
+          "type": "array",
+          "description": "Alation Trust Check Flags (Endorsed, Warning, Deprecated).",
+          "items": {
+            "type": "object",
+            "required": [
+              "flag_type"
+            ],
+            "properties": {
+              "flag_type": {
+                "type": "string",
+                "enum": [
+                  "ENDORSED",
+                  "WARNING",
+                  "DEPRECATED"
+                ]
+              },
+              "flag_reason": {
+                "type": "string"
+              },
+              "subject_type": {
+                "type": "string",
+                "default": "table"
+              }
+            }
+          }
+        },
+        "stewards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "user_id": {
+                "type": "integer"
+              },
+              "email": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "critical_data_element": {
+          "type": "object",
+          "description": "Alation Critical Data Manager (CDM/CDE) attributes.",
+          "properties": {
+            "is_cde": {
+              "type": "boolean",
+              "default": false
+            },
+            "cde_rating": {
+              "type": "string"
+            },
+            "data_domain": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

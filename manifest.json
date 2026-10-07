@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "locale": "en_US",
+  "platform": "4.2.0",
+  "metadata": {
+    "appmode": "python-fastapi",
+    "entrypoint": "app:app"
+  },
+  "python": {
+    "version": "3.12.0",
+    "package_manager": "pip",
+    "packages": {
+      "fastapi": "0.109.0",
+      "uvicorn": "0.27.0",
+      "pydantic": "2.6.0",
+      "pyyaml": "6.0.1",
+      "boto3": "1.34.0",
+      "requests": "2.31.0"
+    }
+  },
+  "files": {
+    "app.py": { "checksum": "app" },
+    "metadata_editor.html": { "checksum": "html" },
+    "unified_metadata_schema.json": { "checksum": "schema" },
+    "requirements.txt": { "checksum": "reqs" }
+  }
+}
